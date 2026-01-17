@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Your Friends — REALones</title>
+    <meta name="description" content="How to export your Facebook friends and import them to REALones">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --turquoise: #e0f5f3;
+            --turquoise-mid: #a8e0db;
+            --deep-teal: #2a6b68;
+            --warm-white: #fefefe;
+            --soft-gray: #5d8a87;
+            --accent: #3d9b95;
+            --light-gray: #f5f5f5;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--turquoise);
+            min-height: 100vh;
+            color: var(--deep-teal);
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--soft-gray);
+            text-decoration: none;
+            font-size: 0.95rem;
+            margin-bottom: 32px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--deep-teal);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 400;
+            color: var(--deep-teal);
+        }
+
+        .logo-text span {
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 16px;
+            color: var(--deep-teal);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--soft-gray);
+            font-size: 1.1rem;
+            margin-bottom: 48px;
+            line-height: 1.6;
+        }
+
+        .section {
+            background: var(--warm-white);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 24px rgba(45, 90, 123, 0.08);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .section-number {
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--deep-teal);
+        }
+
+        .section-desc {
+            color: var(--soft-gray);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: step;
+        }
+
+        .steps li {
+            position: relative;
+            padding-left: 36px;
+            padding-bottom: 20px;
+            border-left: 2px solid var(--turquoise-mid);
+            margin-left: 8px;
+        }
+
+        .steps li:last-child {
+            border-left: 2px solid transparent;
+            padding-bottom: 0;
+        }
+
+        .steps li::before {
+            content: counter(step);
+            counter-increment: step;
+            position: absolute;
+            left: -11px;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            background: var(--turquoise-mid);
+            color: var(--deep-teal);
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .steps li strong {
+            color: var(--deep-teal);
+        }
+
+        .highlight-box {
+            background: var(--turquoise);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+        }
+
+        .highlight-box.warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .highlight-box.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+
+        .emoji {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+
+        .two-paths {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .two-paths {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .path-card {
+            background: var(--turquoise);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .path-card h4 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: var(--deep-teal);
+        }
+
+        .path-card p {
+            font-size: 0.85rem;
+            color: var(--soft-gray);
+        }
+
+        .path-card .icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .cta-section {
+            text-align: center;
+            padding: 40px 32px;
+        }
+
+        .cta-section h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-bottom: 16px;
+            color: var(--deep-teal);
+        }
+
+        .cta-section p {
+            color: var(--soft-gray);
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--deep-teal);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .time-note {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--light-gray);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .time-note .icon {
+            font-size: 1.5rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--soft-gray);
+            font-size: 0.85rem;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">
+            ← Back to REALones
+        </a>
+
+        <div class="logo">
+            <span class="logo-text">REAL<span>ones</span></span>
+        </div>
+
+        <h1>Import Your Facebook Friends</h1>
+        <p class="subtitle">
+            Bring your real connections to REALones.<br>
+            It takes about 5 minutes to set up, then Facebook prepares your export.
+        </p>
+
+        <!-- Section 1: Overview -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number">1</div>
+                <h2 class="section-title">What You'll Do</h2>
+            </div>
+            <p class="section-desc">
+                Facebook lets you export your data. We recommend two exports:
+            </p>
+            <div class="two-paths">
+                <div class="path-card">
+                    <div class="icon">📦</div>
+                    <h4>Full Backup</h4>
+                    <p>Photos, videos, posts — keep your memories safe (for you)</p>
+                </div>
+                <div class="path-card">
+                    <div class="icon">👥</div>
+                    <h4>Friends Export</h4>
+                    <p>Just your friends list — this is what REALones imports</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Go to Facebook -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number">2</div>
+                <h2 class="section-title">Go to Facebook Settings</h2>
+            </div>
+            <ol class="steps">
+                <li>Open <a href="https://accountscenter.facebook.com/info_and_permissions/" target="_blank"><strong>Facebook Accounts Center</strong></a></li>
+                <li>Click <strong>"Your information and permissions"</strong></li>
+                <li>Click <strong>"Export your information"</strong></li>
+                <li>Select <strong>"Export to device"</strong></li>
+            </ol>
+        </div>
+
+        <!-- Section 3: Configure Export -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number">3</div>
+                <h2 class="section-title">Configure Your Export</h2>
+            </div>
+            <p class="section-desc">
+                Set these options for the REALones import:
+            </p>
+            <ol class="steps">
+                <li><strong>Format:</strong> Select <strong>JSON</strong> (not HTML)</li>
+                <li><strong>Date range:</strong> Select <strong>All time</strong></li>
+                <li><strong>Customize information:</strong> Scroll to <strong>"Connections"</strong></li>
+                <li>Check <strong>"Friends"</strong> only — uncheck everything else</li>
+                <li>Click <strong>Save</strong>, then confirm your export</li>
+            </ol>
+            <div class="highlight-box warning">
+                <span class="emoji">⚠️</span>
+                <strong>Important:</strong> Make sure to select <strong>JSON</strong> format, not HTML. REALones can only read JSON files.
+            </div>
+        </div>
+
+        <!-- Section 4: Wait -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number">4</div>
+                <h2 class="section-title">Wait for Your Export</h2>
+            </div>
+            <p class="section-desc">
+                Facebook will prepare your data and notify you when it's ready. This usually takes a few minutes to a few hours.
+            </p>
+            <div class="time-note">
+                <span class="icon">⏱️</span>
+                <span>You'll get an email at your Facebook email address. You have <strong>4 days</strong> to download once it's ready.</span>
+            </div>
+        </div>
+
+        <!-- Section 5: Download & Upload -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number">5</div>
+                <h2 class="section-title">Download & Upload to REALones</h2>
+            </div>
+            <ol class="steps">
+                <li>Download the ZIP file from Facebook</li>
+                <li>Open the REALones app</li>
+                <li>Go to <strong>Profile → Import Friends</strong></li>
+                <li>Upload the ZIP file (or just the <code>friends.json</code> file)</li>
+                <li>Start sorting your real friends! 🎉</li>
+            </ol>
+            <div class="highlight-box success">
+                <span class="emoji">✨</span>
+                <strong>Pro tip:</strong> You'll swipe right to keep friends, left to archive. Take your time — there's no rush!
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="section cta-section">
+            <h2>Ready to Get Real?</h2>
+            <p>Download REALones and start curating your circle.</p>
+            <a href="/" class="btn">Get the App</a>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2025 REALones. Built for real connections.</p>
+            <p><a href="/">Home</a> · <a href="mailto:hello@real-ones.app">Contact</a></p>
+        </footer>
+    </div>
+</body>
+</html>

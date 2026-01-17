@@ -1,0 +1,9 @@
+ app_identifier("app.realones")
+apple_id("YOUR_APPLE_ID@email.com") # Your Apple ID email
+team_id("K4FVH97L69") # Your Apple Developer Team ID
+
+# For App Store Connect API (recommended)
+# Generate key at: https://appstoreconnect.apple.com/access/api
+# key_id("YOUR_KEY_ID")
+# issuer_id("YOUR_ISSUER_ID")
+# key_filepath("./AuthKey_XXXXXX.p8")

@@ -1,0 +1,31 @@
+# Deliverfile - Fastlane deliver configuration
+
+# App metadata
+app_identifier "app.realones"
+username "YOUR_APPLE_ID@email.com" # Your Apple ID
+
+# Skip screenshots upload (do manually or add to fastlane/screenshots/)
+skip_screenshots true
+
+# Skip binary upload (use EAS Build for that)
+skip_binary_upload true
+
+# Metadata path
+metadata_path "./fastlane/metadata"
+
+# App Store submission info
+submit_for_review false
+automatic_release false
+
+# Pricing
+price_tier 0 # Free
+
+# App Rating Configuration
+app_rating_config_path "./fastlane/rating_config.json"
+
+# Categories
+primary_category "SOCIAL_NETWORKING"
+secondary_category "LIFESTYLE"
+
+# Copyright
+copyright "2025 REALones"
