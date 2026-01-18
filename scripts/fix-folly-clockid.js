@@ -52,6 +52,12 @@ for (const relativePath of timeHPaths) {
     }
 
     if (modified) {
+      // Make file writable before writing (fixes EACCES permission denied on EAS builds)
+      try {
+        fs.chmodSync(fullPath, 0o644);
+      } catch (chmodErr) {
+        console.log(`Warning: Could not chmod ${fullPath}: ${chmodErr.message}`);
+      }
       fs.writeFileSync(fullPath, content);
       patched = true;
     } else if (content.includes('// PATCHED') || content.includes('__IPHONE_16_0')) {
