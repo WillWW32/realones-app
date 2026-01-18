@@ -7,8 +7,9 @@ const path = require('path');
  * 1. 'folly/coro/Coroutine.h' file not found error
  * 2. typedef redefinition error for clockid_t
  *
- * This adds preprocessor definitions to disable Folly coroutines
- * and forces iOS deployment target to 16.0 for all pods
+ * This adds:
+ * - Preprocessor definitions to disable Folly coroutines
+ * - A sed command to directly patch RCT-Folly/Time.h to fix clockid_t
  */
 function withFollyNoCoroutines(config) {
   return withDangerousMod(config, [
@@ -20,8 +21,8 @@ function withFollyNoCoroutines(config) {
         let podfileContent = fs.readFileSync(podfilePath, 'utf8');
 
         // Check if we already added the fix
-        if (podfileContent.includes('FOLLY_CFG_NO_COROUTINES')) {
-          console.log('Folly no-coroutines fix already applied');
+        if (podfileContent.includes('FOLLY_CLOCKID_T_FIX')) {
+          console.log('Folly clockid_t fix already applied');
           return config;
         }
 
@@ -29,11 +30,31 @@ function withFollyNoCoroutines(config) {
         const postInstallRegex = /(post_install\s+do\s+\|installer\|)/;
 
         // IMPORTANT: Ruby code must have correct indentation (2 spaces per level)
-        // Force iOS 16.0 deployment target for ALL configurations to fix clockid_t issue
+        // This fix:
+        // 1. Patches Time.h to change __IPHONE_10_0 to __IPHONE_16_0 (fixes clockid_t)
+        // 2. Sets deployment target to 16.0 for all pods
+        // 3. Adds preprocessor definitions to disable Folly coroutines
         const follyFix = `$1
-    # Fix for Folly/Xcode 16+ compatibility
-    # 1. Disables Folly coroutines (fixes 'folly/coro/Coroutine.h' not found)
-    # 2. Forces iOS 16.0 minimum (fixes clockid_t typedef redefinition)
+    # FOLLY_CLOCKID_T_FIX - Fix for Folly/Xcode 16+ compatibility
+    # Patch Time.h to fix clockid_t typedef redefinition error
+    # The issue is that iOS 16+ SDK defines clockid_t as enum, but Folly defines it as uint8_t
+    time_h_path = "Pods/RCT-Folly/folly/portability/Time.h"
+    if File.exist?(time_h_path)
+      time_h_content = File.read(time_h_path)
+      # Change the version check from iOS 10 to iOS 16 so the typedef is skipped
+      modified_content = time_h_content.gsub('__IPHONE_10_0', '__IPHONE_16_0')
+      File.write(time_h_path, modified_content)
+      puts "Patched RCT-Folly Time.h to fix clockid_t typedef"
+    end
+
+    # Also try the Headers path (Xcode 15+ moved some headers)
+    headers_time_h_path = "Pods/Headers/Private/RCT-Folly/folly/portability/Time.h"
+    if File.exist?(headers_time_h_path)
+      time_h_content = File.read(headers_time_h_path)
+      modified_content = time_h_content.gsub('__IPHONE_10_0', '__IPHONE_16_0')
+      File.write(headers_time_h_path, modified_content)
+      puts "Patched RCT-Folly Headers Time.h to fix clockid_t typedef"
+    end
 
     # Set deployment target at the project level
     installer.pods_project.build_configurations.each do |config|
@@ -58,7 +79,7 @@ function withFollyNoCoroutines(config) {
         if (postInstallRegex.test(podfileContent)) {
           podfileContent = podfileContent.replace(postInstallRegex, follyFix);
           fs.writeFileSync(podfilePath, podfileContent);
-          console.log('Applied Folly no-coroutines fix to Podfile');
+          console.log('Applied Folly clockid_t fix to Podfile');
         } else {
           console.warn('Could not find post_install block in Podfile');
         }
