@@ -1,24 +1,31 @@
 {
-  "cli": {
-    "version": ">= 5.0.0"
-  },
-  "build": {
-    "preview": {
-      "distribution": "internal",
-      "ios": {
-        "simulator": false
-      }
+    "cli": {
+          "version": ">= 5.0.0"
     },
-    
-    "production": {}
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "hello@3birdsstudio.com",
-        "ascAppId": "6757965472",
-        "appleTeamId": "K4FVH97L69"
-      }
+    "build": {
+          "preview": {
+                  "distribution": "internal",
+                  "ios": {
+                            "simulator": false
+                  }
+          },
+          "production": {
+                  "node": "20.18.0",
+                  "env": {
+                            "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+                  },
+                  "cache": {
+                            "disabled": true
+                  }
+          }
+    },
+    "submit": {
+          "production": {
+                  "ios": {
+                            "appleId": "hello@3birdsstudio.com",
+                            "ascAppId": "6757965472",
+                            "appleTeamId": "K4FVH97L69"
+                  }
+          }
     }
-  }
 }
