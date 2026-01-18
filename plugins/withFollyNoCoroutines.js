@@ -32,7 +32,6 @@ function withFollyNoCoroutines(config) {
                           const follyFix = `$1
                               # Fix for 'folly/coro/Coroutine.h' file not found error
                                   # Disables Folly coroutines which are incompatible with Xcode 16+
-                                      # Also sets minimum iOS deployment target to 15.1 to fix typedef redefinition error
                                           installer.pods_project.targets.each do |target|
                                                 target.build_configurations.each do |config|
                                                         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
@@ -40,8 +39,8 @@ function withFollyNoCoroutines(config) {
                                                                         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_CFG_NO_COROUTINES=1'
                                                                                 config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_HAS_COROUTINES=0'
                                                                                         # Set minimum iOS deployment target to 15.1 to avoid clockid_t typedef conflict
-                                                                                                if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 15.1
-                                                                                                          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+                                                                                                if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 16.0
+                                                                                                          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
                                                                                                                   end
                                                                                                                         end
                                                                                                                             end
