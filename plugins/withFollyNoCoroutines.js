@@ -8,7 +8,7 @@ const path = require('path');
  * 2. typedef redefinition error for clockid_t
  *
  * This adds preprocessor definitions to disable Folly coroutines
- * and sets iOS deployment target to 16.0
+ * and forces iOS deployment target to 16.0 for all pods
  */
 function withFollyNoCoroutines(config) {
   return withDangerousMod(config, [
@@ -29,20 +29,28 @@ function withFollyNoCoroutines(config) {
         const postInstallRegex = /(post_install\s+do\s+\|installer\|)/;
 
         // IMPORTANT: Ruby code must have correct indentation (2 spaces per level)
+        // Force iOS 16.0 deployment target for ALL configurations to fix clockid_t issue
         const follyFix = `$1
     # Fix for Folly/Xcode 16+ compatibility
     # 1. Disables Folly coroutines (fixes 'folly/coro/Coroutine.h' not found)
-    # 2. Sets iOS 16.0 minimum (fixes clockid_t typedef redefinition)
+    # 2. Forces iOS 16.0 minimum (fixes clockid_t typedef redefinition)
+
+    # Set deployment target at the project level
+    installer.pods_project.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+    end
+
+    # Set deployment target and preprocessor definitions for each target
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
+        # Force iOS 16.0 deployment target
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+
+        # Add Folly preprocessor definitions
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_CONFIG=1'
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_CFG_NO_COROUTINES=1'
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_HAS_COROUTINES=0'
-        # Set minimum iOS deployment target to 16.0 to avoid clockid_t typedef conflict
-        if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 16.0
-          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
-        end
       end
     end
 `;
