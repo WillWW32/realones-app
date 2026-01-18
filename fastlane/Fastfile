@@ -1,0 +1,48 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    setup_ci if ENV['CI']
+
+    # Get certificates and provisioning profiles
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: "app.realones"
+    )
+
+    # Build the app
+    build_app(
+      workspace: "ios/REALones.xcworkspace",
+      scheme: "REALones",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "REALones.ipa"
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Build only (no upload)"
+  lane :build do
+    setup_ci if ENV['CI']
+
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: "app.realones"
+    )
+
+    build_app(
+      workspace: "ios/REALones.xcworkspace",
+      scheme: "REALones",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "REALones.ipa"
+    )
+  end
+end

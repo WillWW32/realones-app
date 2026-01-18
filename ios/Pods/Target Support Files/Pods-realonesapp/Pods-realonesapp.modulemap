@@ -1,6 +1,0 @@
-module Pods_realonesapp {
-  umbrella header "Pods-realonesapp-umbrella.h"
-
-  export *
-  module * { export * }
-}
