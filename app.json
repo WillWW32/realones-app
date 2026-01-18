@@ -8,6 +8,7 @@
                   "userInterfaceStyle": "light",
                   "newArchEnabled": false,
                   "plugins": [
+                                                  "./plugins/withFollyNoCoroutines",
                               [
                                             "expo-build-properties",
                                             {
