@@ -152,11 +152,9 @@ export default function FeedScreen({ navigation }: any) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Image 
-        source={require('../../../assets/logo.png')} 
-        style={styles.logoImage}
-        resizeMode="contain"
-      />
+      <Text style={styles.logoText}>
+        REAL<Text style={styles.logoAccent}>ones</Text>
+      </Text>
       <TouchableOpacity onPress={() => navigation.navigate('Compose')}>
         <Ionicons name="add-circle" size={32} color={colors.accent} />
       </TouchableOpacity>
@@ -221,9 +219,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     backgroundColor: colors.babyBlue,
   },
-  logoImage: {
-    width: 120,
-    height: 50,
+  logoText: {
+    fontSize: 28,
+    fontWeight: '400',
+    color: colors.deepBlue,
+    letterSpacing: -1,
+  },
+  logoAccent: {
+    fontStyle: 'italic',
+    color: colors.accent,
   },
   feedContent: {
     paddingHorizontal: spacing.md,

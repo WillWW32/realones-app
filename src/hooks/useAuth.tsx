@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 import { User } from '../types';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   session: Session | null;
@@ -79,32 +85,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithApple = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          skipBrowserRedirect: true,
-        },
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
       });
-      if (error) throw error;
-    } catch (error) {
+
+      if (credential.identityToken) {
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: credential.identityToken,
+        });
+        if (error) throw error;
+      } else {
+        throw new Error('No identity token received from Apple');
+      }
+    } catch (error: any) {
+      if (error.code === 'ERR_REQUEST_CANCELED') {
+        // User cancelled, don't throw
+        return;
+      }
       console.error('Apple sign in error:', error);
       throw error;
     }
   };
 
   const signInWithGoogle = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          skipBrowserRedirect: true,
-        },
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error('Google sign in error:', error);
-      throw error;
-    }
+    // Google Sign-In requires additional setup:
+    // 1. Create OAuth 2.0 credentials in Google Cloud Console
+    // 2. Configure in Supabase Dashboard > Authentication > Providers > Google
+    // 3. Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your environment
+    // For now, show a message that Apple Sign-In is available
+    throw new Error('Google Sign-In is coming soon! Please use Apple Sign-In for now.');
   };
 
   const signOut = async () => {

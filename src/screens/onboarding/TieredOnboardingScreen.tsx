@@ -8,7 +8,6 @@ import {
   FlatList,
   Share,
   Animated,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -181,11 +180,9 @@ export default function TieredOnboardingScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={require('../../../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <Text style={styles.logoText}>
+          REAL<Text style={styles.logoAccent}>ones</Text>
+        </Text>
       </View>
 
       {/* Tier Progress */}
@@ -343,9 +340,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.md,
   },
-  logo: {
-    width: 150,
-    height: 60,
+  logoText: {
+    fontSize: 32,
+    fontWeight: '400',
+    color: colors.deepBlue,
+    letterSpacing: -1,
+  },
+  logoAccent: {
+    fontStyle: 'italic',
+    color: colors.accent,
   },
   tierProgress: {
     flexDirection: 'row',

@@ -8,7 +8,15 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "plugins": [
-      "./plugins/withFollyNoCoroutines"
+      "./plugins/withFollyNoCoroutines",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0"
+          }
+        }
+      ]
     ],
     "splash": {
       "image": "./assets/logo.png",
@@ -18,7 +26,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.realones",
-      "buildNumber": "4",
+      "buildNumber": "6",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

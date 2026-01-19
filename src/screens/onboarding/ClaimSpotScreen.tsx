@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Animated,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -124,11 +123,11 @@ export default function ClaimSpotScreen({ navigation, route }: ClaimSpotScreenPr
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Logo */}
-        <Image 
-          source={require('../../../assets/logo.png')} 
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoText}>
+            REAL<Text style={styles.logoAccent}>ones</Text>
+          </Text>
+        </View>
 
         {inviter ? (
           <>
@@ -265,10 +264,19 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl,
     alignItems: 'center',
   },
-  logoImage: {
-    width: 180,
-    height: 80,
+  logoContainer: {
+    alignItems: 'center',
     marginBottom: spacing.xl,
+  },
+  logoText: {
+    fontSize: 42,
+    fontWeight: '400',
+    color: colors.deepBlue,
+    letterSpacing: -1,
+  },
+  logoAccent: {
+    fontStyle: 'italic',
+    color: colors.accent,
   },
   inviterCard: {
     alignItems: 'center',
