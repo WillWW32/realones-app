@@ -64,64 +64,84 @@ export default function ConversationsScreen({ navigation }: any) {
 
   const fetchConversations = async () => {
     if (!user) return;
-    
+
     try {
-      // For now, use mock data - will connect to Supabase later
-      const mockConversations: Conversation[] = [
-        {
-          id: '1',
-          type: 'besties',
-          name: 'Ride or Dies 💪',
-          last_message: 'Who\'s in for dinner Friday?',
-          last_message_at: new Date().toISOString(),
-          unread_count: 3,
-          members: [
-            { id: '1', full_name: 'Sarah J', avatar_url: null },
-            { id: '2', full_name: 'Mike C', avatar_url: null },
-            { id: '3', full_name: 'Emily D', avatar_url: null },
-            { id: '4', full_name: 'Alex T', avatar_url: null },
-          ],
-        },
-        {
-          id: '2',
-          type: 'squad',
-          name: 'College Crew 🎓',
-          last_message: 'Did anyone catch the game?',
-          last_message_at: new Date(Date.now() - 3600000).toISOString(),
-          unread_count: 0,
-          members: Array(12).fill(null).map((_, i) => ({
-            id: String(i),
-            full_name: `Friend ${i + 1}`,
-            avatar_url: null,
-          })),
-        },
-        {
-          id: '3',
-          type: 'dm',
-          name: null,
-          last_message: 'Hey, are you free tomorrow?',
-          last_message_at: new Date(Date.now() - 7200000).toISOString(),
-          unread_count: 1,
-          members: [
-            { id: '5', full_name: 'Jessica M', avatar_url: null },
-          ],
-        },
-        {
-          id: '4',
-          type: 'dm',
-          name: null,
-          last_message: 'Thanks for the recommendation!',
-          last_message_at: new Date(Date.now() - 86400000).toISOString(),
-          unread_count: 0,
-          members: [
-            { id: '6', full_name: 'David K', avatar_url: null },
-          ],
-        },
-      ];
-      
-      setConversations(mockConversations);
+      // Fetch real conversations from Supabase
+      const { data, error } = await supabase
+        .from('conversation_members')
+        .select(`
+          conversation:conversations(
+            id,
+            type,
+            name,
+            last_message,
+            last_message_at
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching conversations:', error);
+        // Start with empty list if table doesn't exist or other error
+        setConversations([]);
+        return;
+      }
+
+      // Transform data into conversation format
+      const convos: Conversation[] = [];
+
+      if (data && data.length > 0) {
+        for (const item of data) {
+          if (item.conversation) {
+            const conv = item.conversation as any;
+
+            // Fetch members for each conversation
+            const { data: members } = await supabase
+              .from('conversation_members')
+              .select(`
+                user:profiles(id, full_name, avatar_url)
+              `)
+              .eq('conversation_id', conv.id)
+              .neq('user_id', user.id);
+
+            // Get user's last_read_at for this conversation
+            const { data: memberData } = await supabase
+              .from('conversation_members')
+              .select('last_read_at')
+              .eq('conversation_id', conv.id)
+              .eq('user_id', user.id)
+              .single();
+
+            // Count unread messages (messages after last_read_at, not from current user)
+            let unreadCount = 0;
+            if (memberData?.last_read_at) {
+              const { count } = await supabase
+                .from('messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('conversation_id', conv.id)
+                .neq('sender_id', user.id)
+                .gt('created_at', memberData.last_read_at);
+
+              unreadCount = count || 0;
+            }
+
+            convos.push({
+              id: conv.id,
+              type: conv.type || 'dm',
+              name: conv.name,
+              last_message: conv.last_message,
+              last_message_at: conv.last_message_at,
+              unread_count: unreadCount,
+              members: members?.map((m: any) => m.user).filter(Boolean) || [],
+            });
+          }
+        }
+      }
+
+      setConversations(convos);
     } catch (error) {
       console.error('Error fetching conversations:', error);
+      setConversations([]);
     } finally {
       setLoading(false);
     }

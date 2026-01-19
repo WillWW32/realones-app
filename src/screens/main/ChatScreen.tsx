@@ -56,7 +56,8 @@ export default function ChatScreen({ route, navigation }: any) {
 
   useEffect(() => {
     fetchMessages();
-    
+    markAsRead();
+
     // Subscribe to new messages
     const channel = supabase
       .channel(`chat:${conversationId}`)
@@ -75,6 +76,8 @@ export default function ChatScreen({ route, navigation }: any) {
           created_at: newMessage.created_at,
           is_mine: newMessage.sender_id === user?.id,
         }]);
+        // Update last_read_at when receiving new messages while chat is open
+        markAsRead();
       })
       .subscribe();
 
@@ -83,71 +86,54 @@ export default function ChatScreen({ route, navigation }: any) {
     };
   }, [conversationId]);
 
+  // Mark conversation as read
+  const markAsRead = async () => {
+    if (!user?.id) return;
+    try {
+      await supabase
+        .from('conversation_members')
+        .update({ last_read_at: new Date().toISOString() })
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id);
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
+
   const fetchMessages = async () => {
     try {
-      // Mock messages for now
-      const mockMessages: Message[] = [
-        {
-          id: '1',
-          content: 'Hey everyone! 👋',
-          sender_id: 'other1',
-          sender_name: 'Sarah',
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          is_mine: false,
-        },
-        {
-          id: '2',
-          content: 'What\'s the plan for this weekend?',
-          sender_id: 'other1',
-          sender_name: 'Sarah',
-          created_at: new Date(Date.now() - 3500000).toISOString(),
-          is_mine: false,
-        },
-        {
-          id: '3',
-          content: 'I was thinking we could grab dinner Friday night',
-          sender_id: user?.id || 'me',
-          sender_name: profile?.full_name || 'Me',
-          created_at: new Date(Date.now() - 3400000).toISOString(),
-          is_mine: true,
-        },
-        {
-          id: '4',
-          content: 'That sounds great! Count me in 🙌',
-          sender_id: 'other2',
-          sender_name: 'Mike',
-          created_at: new Date(Date.now() - 3300000).toISOString(),
-          is_mine: false,
-        },
-        {
-          id: '5',
-          content: 'Same here!',
-          sender_id: 'other3',
-          sender_name: 'Emily',
-          created_at: new Date(Date.now() - 3200000).toISOString(),
-          is_mine: false,
-        },
-        {
-          id: '6',
-          content: 'Perfect, let\'s do 7pm at the usual spot?',
-          sender_id: user?.id || 'me',
-          sender_name: profile?.full_name || 'Me',
-          created_at: new Date(Date.now() - 3100000).toISOString(),
-          is_mine: true,
-        },
-        {
-          id: '7',
-          content: 'Works for me! 👍',
-          sender_id: 'other1',
-          sender_name: 'Sarah',
-          created_at: new Date(Date.now() - 60000).toISOString(),
-          is_mine: false,
-        },
-      ];
-      
-      setMessages(mockMessages);
+      // Fetch real messages from Supabase
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          content,
+          sender_id,
+          created_at,
+          sender:profiles!messages_sender_id_fkey(full_name)
+        `)
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        setMessages([]);
+        return;
+      }
+
+      const transformedMessages: Message[] = (data || []).map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        sender_id: msg.sender_id,
+        sender_name: msg.sender?.full_name || 'Unknown',
+        created_at: msg.created_at,
+        is_mine: msg.sender_id === user?.id,
+      }));
+
+      setMessages(transformedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -172,14 +158,26 @@ export default function ChatScreen({ route, navigation }: any) {
       };
       
       setMessages(prev => [...prev, newMessage]);
-      
-      // TODO: Send to Supabase
-      // await supabase.from('messages').insert({
-      //   conversation_id: conversationId,
-      //   sender_id: user?.id,
-      //   content: messageText,
-      // });
-      
+
+      // Send to Supabase
+      const { error } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: user?.id,
+        content: messageText,
+      });
+
+      if (error) {
+        console.error('Error sending message:', error);
+        // Remove optimistic message on failure
+        setMessages(prev => prev.filter(m => m.id !== newMessage.id));
+      } else {
+        // Update conversation's last_message
+        await supabase.from('conversations').update({
+          last_message: messageText,
+          last_message_at: new Date().toISOString(),
+        }).eq('id', conversationId);
+      }
+
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -242,7 +240,7 @@ export default function ChatScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -278,7 +276,7 @@ export default function ChatScreen({ route, navigation }: any) {
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {loading ? (
           <View style={styles.loadingContainer}>

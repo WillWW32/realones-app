@@ -5,9 +5,52 @@ export interface User {
   full_name: string;
   avatar_url?: string;
   bio?: string;
+  invited_by?: string; // User ID of who invited them
   created_at: string;
   updated_at: string;
 }
+
+// Pioneer status
+export interface PioneerStatus {
+  id: string;
+  user_id: string;
+  credits: number;
+  is_activated: boolean;
+  activated_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Pioneer credit types
+export type PioneerCreditType = 'friend_joined' | 'facebook_import' | 'profile_complete' | 'contacts_import';
+
+// Friend tiers - your inner circles
+export type FriendTier = 'realones' | 'squad' | 'rideordies';
+
+// Friend tier descriptions
+export const FRIEND_TIERS = {
+  rideordies: {
+    name: 'Ride or Dies',
+    emoji: '💪',
+    maxCount: 4,
+    description: 'Your absolute closest people. Max 4.',
+    color: '#E91E63', // pink/heart color
+  },
+  squad: {
+    name: 'Squad',
+    emoji: '🤝',
+    maxCount: 12,
+    description: 'Your inner circle. Max 12.',
+    color: '#4CAF50', // green/success
+  },
+  realones: {
+    name: 'Real Ones',
+    emoji: '✨',
+    maxCount: 200,
+    description: 'Your real friends. Max 200.',
+    color: '#4A9BB8', // teal/accent
+  },
+};
 
 // Friend relationship
 export interface Friend {
@@ -15,7 +58,8 @@ export interface Friend {
   user_id: string;
   friend_id: string;
   status: 'active' | 'archived' | 'pending' | 'import_pool';
-  source: 'manual' | 'facebook_import';
+  source: 'manual' | 'facebook_import' | 'contacts_import';
+  tier?: FriendTier;
   facebook_data?: FacebookFriendData;
   created_at: string;
   updated_at: string;
@@ -152,11 +196,39 @@ export interface Subscription {
 
 // App constants
 export const CONSTANTS = {
-  FREE_FRIEND_LIMIT: 200,
+  // Free tier limits
+  FREE_ACTIVE_LIMIT: 100,
+  FREE_ARCHIVED_LIMIT: 100,
+  FREE_FRIEND_LIMIT: 200, // Total: active + archived
+  // Pricing
   EXTRA_FRIENDS_PER_TIER: 10,
-  PRICE_PER_TIER_CENTS: 100, // $1
+  PRICE_PER_TIER_CENTS: 100, // $1 per 10 extra friends
   MAX_TOTAL_FRIENDS: 500, // Hard cap even with payment
+  // Cull settings
   DEFAULT_CULL_PERIOD_DAYS: 30,
   MIN_CULL_PERIOD_DAYS: 7,
   MAX_CULL_PERIOD_DAYS: 60,
+};
+
+// Pricing tiers explanation
+export const PRICING_INFO = {
+  free: {
+    name: 'Free',
+    price: '$0/month',
+    features: [
+      '100 active friends',
+      '100 archived (Remember Me)',
+      'Unlimited posts',
+      'Group messaging (Besties + Squad)',
+    ],
+  },
+  premium: {
+    name: 'Premium',
+    pricePerTen: '$1/month per 10 extra friends',
+    features: [
+      'Expand beyond 100 active friends',
+      'Up to 500 total friends',
+      'Priority support',
+    ],
+  },
 };

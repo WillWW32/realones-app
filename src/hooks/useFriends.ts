@@ -34,8 +34,14 @@ export function useFriends(): UseFriendsReturn {
 
   const activeCount = activeFriends.length;
   const archivedCount = archivedFriends.length;
-  const isOverLimit = activeCount > CONSTANTS.FREE_FRIEND_LIMIT;
-  const extraFriendsNeeded = Math.max(0, activeCount - CONSTANTS.FREE_FRIEND_LIMIT);
+  // Check if over limit (100 active OR 100 archived, or total > 200)
+  const activeOverLimit = activeCount > CONSTANTS.FREE_ACTIVE_LIMIT;
+  const archivedOverLimit = archivedCount > CONSTANTS.FREE_ARCHIVED_LIMIT;
+  const isOverLimit = activeOverLimit || archivedOverLimit;
+  const extraFriendsNeeded = Math.max(
+    0,
+    (activeCount - CONSTANTS.FREE_ACTIVE_LIMIT) + (archivedCount - CONSTANTS.FREE_ARCHIVED_LIMIT)
+  );
 
   const fetchFriends = useCallback(async () => {
     if (!user?.id) return;

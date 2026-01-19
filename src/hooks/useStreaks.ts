@@ -3,19 +3,39 @@ import { supabase } from '../lib/supabase';
 import { Streak, Badge, UserBadge } from '../types';
 import { useAuth } from './useAuth';
 
+export type StreakType = 'cull' | 'post' | 'general';
+
+interface StreakData {
+  cull_streak: number;
+  post_streak: number;
+  longest_cull_streak: number;
+  longest_post_streak: number;
+  last_cull_date?: string;
+  last_post_date?: string;
+}
+
 interface UseStreaksReturn {
   streak: Streak | null;
+  streakData: StreakData;
   badges: UserBadge[];
   allBadges: Badge[];
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  recordAction: () => Promise<void>;
+  recordAction: (type?: StreakType) => Promise<void>;
+  recordCullAction: () => Promise<void>;
+  recordPostAction: () => Promise<void>;
 }
 
 export function useStreaks(): UseStreaksReturn {
   const { user } = useAuth();
   const [streak, setStreak] = useState<Streak | null>(null);
+  const [streakData, setStreakData] = useState<StreakData>({
+    cull_streak: 0,
+    post_streak: 0,
+    longest_cull_streak: 0,
+    longest_post_streak: 0,
+  });
   const [badges, setBadges] = useState<UserBadge[]>([]);
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,13 +182,24 @@ export function useStreaks(): UseStreaksReturn {
     }
   };
 
+  const recordCullAction = useCallback(async () => {
+    await recordAction();
+  }, [recordAction]);
+
+  const recordPostAction = useCallback(async () => {
+    await recordAction();
+  }, [recordAction]);
+
   return {
     streak,
+    streakData,
     badges,
     allBadges,
     loading,
     error,
     refresh: fetchStreakData,
     recordAction,
+    recordCullAction,
+    recordPostAction,
   };
 }

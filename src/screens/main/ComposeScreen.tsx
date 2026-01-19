@@ -9,37 +9,140 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, borderRadius, typography, shadows } from '../../lib/theme';
 import { usePosts } from '../../hooks/usePosts';
 import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
+
+const MAX_PHOTOS = 4;
 
 export default function ComposeScreen({ navigation }: any) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { createPost } = usePosts();
   const [content, setContent] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const pickImage = async () => {
+    if (photos.length >= MAX_PHOTOS) {
+      Alert.alert('Limit Reached', `You can only add up to ${MAX_PHOTOS} photos per post.`);
+      return;
+    }
+
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your photos to add images to your post.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setPhotos([...photos, result.assets[0].uri]);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(photos.filter((_, i) => i !== index));
+  };
+
+  const uploadPhotos = async (): Promise<string[]> => {
+    if (!user?.id || photos.length === 0) return [];
+
+    const uploadedUrls: string[] = [];
+
+    for (const photoUri of photos) {
+      try {
+        const ext = photoUri.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+        const filePath = fileName;
+
+        const response = await fetch(photoUri);
+        const blob = await response.blob();
+
+        const { error: uploadError } = await supabase.storage
+          .from('posts')
+          .upload(filePath, blob, {
+            contentType: `image/${ext}`,
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          continue;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('posts')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      } catch (error) {
+        console.error('Error uploading photo:', error);
+      }
+    }
+
+    return uploadedUrls;
+  };
+
   const handlePost = async () => {
-    if (!content.trim()) {
-      Alert.alert('Empty Post', 'Write something to share with your circle!');
+    if (!content.trim() && photos.length === 0) {
+      Alert.alert('Empty Post', 'Write something or add a photo to share with your circle!');
       return;
     }
 
     try {
       setLoading(true);
-      await createPost(content.trim());
+
+      let mediaUrls: string[] = [];
+
+      if (photos.length > 0) {
+        setUploading(true);
+        mediaUrls = await uploadPhotos();
+        setUploading(false);
+
+        if (mediaUrls.length === 0 && photos.length > 0) {
+          Alert.alert('Upload Failed', 'Failed to upload photos. Please try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      const postType = mediaUrls.length > 0 ? 'photo' : 'text';
+      await createPost(content.trim(), mediaUrls, postType);
       navigation.goBack();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create post. Please try again.');
+    } catch (error: any) {
+      console.error('Post creation error:', error);
+      Alert.alert(
+        'Failed to Create Post',
+        error?.message || 'Something went wrong. Please try again.'
+      );
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
 
-  const canPost = content.trim().length > 0;
+  const canPost = content.trim().length > 0 || photos.length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -68,46 +171,94 @@ export default function ComposeScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Compose Area */}
-        <View style={styles.composeArea}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {profile?.full_name?.charAt(0) || '?'}
-              </Text>
+        <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+          {/* Compose Area */}
+          <View style={styles.composeArea}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {profile?.full_name?.charAt(0) || '?'}
+                </Text>
+              </View>
             </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="What's on your mind?"
+              placeholderTextColor={colors.softGray}
+              multiline
+              autoFocus
+              value={content}
+              onChangeText={setContent}
+              maxLength={2000}
+            />
           </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="What's on your mind?"
-            placeholderTextColor={colors.softGray}
-            multiline
-            autoFocus
-            value={content}
-            onChangeText={setContent}
-            maxLength={2000}
-          />
-        </View>
+          {/* Photo Preview */}
+          {photos.length > 0 && (
+            <View style={styles.photoPreviewContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {photos.map((uri, index) => (
+                  <View key={index} style={styles.photoWrapper}>
+                    <Image source={{ uri }} style={styles.photoPreview} />
+                    <TouchableOpacity
+                      style={styles.removePhotoBtn}
+                      onPress={() => removePhoto(index)}
+                    >
+                      <Ionicons name="close-circle" size={24} color={colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {photos.length < MAX_PHOTOS && (
+                  <TouchableOpacity style={styles.addMoreBtn} onPress={pickImage}>
+                    <Ionicons name="add" size={32} color={colors.softGray} />
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+              <Text style={styles.photoCount}>{photos.length}/{MAX_PHOTOS} photos</Text>
+            </View>
+          )}
 
-        {/* Character count */}
-        <View style={styles.footer}>
-          <Text style={styles.charCount}>{content.length}/2000</Text>
-        </View>
+          {/* Uploading indicator */}
+          {uploading && (
+            <View style={styles.uploadingBar}>
+              <ActivityIndicator size="small" color={colors.accent} />
+              <Text style={styles.uploadingText}>Uploading photos...</Text>
+            </View>
+          )}
+
+          {/* Character count */}
+          <View style={styles.footer}>
+            <Text style={styles.charCount}>{content.length}/2000</Text>
+          </View>
+        </ScrollView>
 
         {/* Action buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="image-outline" size={24} color={colors.accent} />
-            <Text style={styles.actionText}>Photo</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={pickImage}
+            disabled={photos.length >= MAX_PHOTOS}
+          >
+            <Ionicons
+              name="image-outline"
+              size={24}
+              color={photos.length >= MAX_PHOTOS ? colors.mediumGray : colors.accent}
+            />
+            <Text style={[
+              styles.actionText,
+              photos.length >= MAX_PHOTOS && styles.actionTextDisabled
+            ]}>
+              Photo {photos.length > 0 ? `(${photos.length})` : ''}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="location-outline" size={24} color={colors.accent} />
-            <Text style={styles.actionText}>Check In</Text>
+            <Ionicons name="location-outline" size={24} color={colors.mediumGray} />
+            <Text style={[styles.actionText, styles.actionTextDisabled]}>Check In</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="stats-chart-outline" size={24} color={colors.accent} />
-            <Text style={styles.actionText}>Poll</Text>
+            <Ionicons name="stats-chart-outline" size={24} color={colors.mediumGray} />
+            <Text style={[styles.actionText, styles.actionTextDisabled]}>Poll</Text>
           </TouchableOpacity>
         </View>
 
@@ -129,6 +280,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.babyBlue,
   },
   keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   header: {
@@ -169,9 +323,9 @@ const styles = StyleSheet.create({
     color: colors.softGray,
   },
   composeArea: {
-    flex: 1,
     flexDirection: 'row',
     padding: spacing.md,
+    minHeight: 120,
   },
   avatarContainer: {
     marginRight: spacing.md,
@@ -195,6 +349,53 @@ const styles = StyleSheet.create({
     color: colors.deepBlue,
     textAlignVertical: 'top',
     lineHeight: 26,
+  },
+  photoPreviewContainer: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  photoWrapper: {
+    position: 'relative',
+    marginRight: spacing.sm,
+  },
+  photoPreview: {
+    width: 120,
+    height: 120,
+    borderRadius: borderRadius.md,
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.warmWhite,
+    borderRadius: 12,
+  },
+  addMoreBtn: {
+    width: 120,
+    height: 120,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: colors.lightGray,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.warmWhite,
+  },
+  photoCount: {
+    fontSize: typography.xs,
+    color: colors.softGray,
+    marginTop: spacing.sm,
+  },
+  uploadingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  uploadingText: {
+    fontSize: typography.sm,
+    color: colors.accent,
   },
   footer: {
     paddingHorizontal: spacing.md,
@@ -222,6 +423,9 @@ const styles = StyleSheet.create({
     fontSize: typography.sm,
     color: colors.accent,
     fontWeight: typography.medium,
+  },
+  actionTextDisabled: {
+    color: colors.mediumGray,
   },
   visibilityBar: {
     flexDirection: 'row',

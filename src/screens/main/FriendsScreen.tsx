@@ -9,12 +9,13 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography, shadows } from '../../lib/theme';
 import { useFriends } from '../../hooks/useFriends';
-import { Friend, CONSTANTS } from '../../types';
+import { Friend, CONSTANTS, FRIEND_TIERS } from '../../types';
 
 type TabType = 'active' | 'archived' | 'import';
 
@@ -91,6 +92,7 @@ function FriendItem({ friend, onArchive, onActivate, onRemove }: FriendItemProps
 export default function FriendsScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTierInfo, setShowTierInfo] = useState(false);
   
   const {
     activeFriends,
@@ -163,17 +165,14 @@ export default function FriendsScreen({ navigation }: any) {
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{activeCount}</Text>
-          <Text style={styles.statLabel}>Active Circle</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{CONSTANTS.FREE_FRIEND_LIMIT}</Text>
-          <Text style={styles.statLabel}>Free Limit</Text>
+          <Text style={styles.statLabel}>Active</Text>
+          <Text style={styles.statLimit}>/ {CONSTANTS.FREE_ACTIVE_LIMIT}</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{archivedFriends.length}</Text>
           <Text style={styles.statLabel}>Remember Me</Text>
+          <Text style={styles.statLimit}>/ {CONSTANTS.FREE_ARCHIVED_LIMIT}</Text>
         </View>
       </View>
 
@@ -278,13 +277,93 @@ export default function FriendsScreen({ navigation }: any) {
     );
   }
 
+  const renderTierInfoModal = () => (
+    <Modal
+      visible={showTierInfo}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowTierInfo(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Friend Tiers</Text>
+            <TouchableOpacity onPress={() => setShowTierInfo(false)}>
+              <Ionicons name="close" size={24} color={colors.deepBlue} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modalSubtitle}>
+            REALones is about quality over quantity. Organize your friends into tiers based on closeness.
+          </Text>
+
+          {/* Ride or Dies */}
+          <View style={styles.tierCard}>
+            <View style={[styles.tierIcon, { backgroundColor: FRIEND_TIERS.rideordies.color + '20' }]}>
+              <Text style={styles.tierEmoji}>{FRIEND_TIERS.rideordies.emoji}</Text>
+            </View>
+            <View style={styles.tierInfo}>
+              <Text style={[styles.tierName, { color: FRIEND_TIERS.rideordies.color }]}>
+                {FRIEND_TIERS.rideordies.name}
+              </Text>
+              <Text style={styles.tierDescription}>{FRIEND_TIERS.rideordies.description}</Text>
+              <Text style={styles.tierFeature}>• Can message your Besties group</Text>
+            </View>
+          </View>
+
+          {/* Squad */}
+          <View style={styles.tierCard}>
+            <View style={[styles.tierIcon, { backgroundColor: FRIEND_TIERS.squad.color + '20' }]}>
+              <Text style={styles.tierEmoji}>{FRIEND_TIERS.squad.emoji}</Text>
+            </View>
+            <View style={styles.tierInfo}>
+              <Text style={[styles.tierName, { color: FRIEND_TIERS.squad.color }]}>
+                {FRIEND_TIERS.squad.name}
+              </Text>
+              <Text style={styles.tierDescription}>{FRIEND_TIERS.squad.description}</Text>
+              <Text style={styles.tierFeature}>• Can message your Squad group</Text>
+            </View>
+          </View>
+
+          {/* Real Ones */}
+          <View style={styles.tierCard}>
+            <View style={[styles.tierIcon, { backgroundColor: FRIEND_TIERS.realones.color + '20' }]}>
+              <Text style={styles.tierEmoji}>{FRIEND_TIERS.realones.emoji}</Text>
+            </View>
+            <View style={styles.tierInfo}>
+              <Text style={[styles.tierName, { color: FRIEND_TIERS.realones.color }]}>
+                {FRIEND_TIERS.realones.name}
+              </Text>
+              <Text style={styles.tierDescription}>{FRIEND_TIERS.realones.description}</Text>
+              <Text style={styles.tierFeature}>• See your posts in their feed</Text>
+            </View>
+          </View>
+
+          <Text style={styles.modalFooter}>
+            "Sometimes a step back is a step forward" — focus on who matters most.
+          </Text>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {renderTierInfoModal()}
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Friends</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('AddFriend')}>
-          <Ionicons name="person-add" size={24} color={colors.accent} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => setShowTierInfo(true)}
+            style={styles.infoButton}
+          >
+            <Ionicons name="help-circle-outline" size={24} color={colors.softGray} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('AddFriend')}>
+            <Ionicons name="person-add" size={24} color={colors.accent} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -311,6 +390,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  infoButton: {
+    padding: 4,
   },
   headerTitle: {
     fontSize: typography['2xl'],
@@ -341,6 +428,11 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: typography.xs,
     color: colors.softGray,
+    marginTop: 2,
+  },
+  statLimit: {
+    fontSize: typography.xs,
+    color: colors.mediumGray,
     marginTop: 2,
   },
   statDivider: {
@@ -485,6 +577,81 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: typography.base,
     color: colors.softGray,
+    marginTop: spacing.md,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.warmWhite,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontSize: typography['2xl'],
+    fontWeight: typography.bold,
+    color: colors.deepBlue,
+  },
+  modalSubtitle: {
+    fontSize: typography.base,
+    color: colors.softGray,
+    marginBottom: spacing.lg,
+    lineHeight: 22,
+  },
+  tierCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.babyBlue,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  tierIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  tierEmoji: {
+    fontSize: 24,
+  },
+  tierInfo: {
+    flex: 1,
+  },
+  tierName: {
+    fontSize: typography.lg,
+    fontWeight: typography.semibold,
+    marginBottom: 4,
+  },
+  tierDescription: {
+    fontSize: typography.sm,
+    color: colors.deepBlue,
+    marginBottom: 4,
+  },
+  tierFeature: {
+    fontSize: typography.xs,
+    color: colors.softGray,
+    fontStyle: 'italic',
+  },
+  modalFooter: {
+    fontSize: typography.sm,
+    fontStyle: 'italic',
+    color: colors.accent,
+    textAlign: 'center',
     marginTop: spacing.md,
   },
 });

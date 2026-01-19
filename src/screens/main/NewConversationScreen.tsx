@@ -68,26 +68,32 @@ export default function NewConversationScreen({ navigation }: any) {
   }, [step]);
 
   const fetchFriends = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      // Mock friends for now
-      const mockFriends: Friend[] = [
-        { id: '1', full_name: 'Sarah Johnson', avatar_url: null },
-        { id: '2', full_name: 'Mike Chen', avatar_url: null },
-        { id: '3', full_name: 'Emily Davis', avatar_url: null },
-        { id: '4', full_name: 'Alex Thompson', avatar_url: null },
-        { id: '5', full_name: 'Jessica Martinez', avatar_url: null },
-        { id: '6', full_name: 'David Kim', avatar_url: null },
-        { id: '7', full_name: 'Rachel Green', avatar_url: null },
-        { id: '8', full_name: 'Chris Wilson', avatar_url: null },
-        { id: '9', full_name: 'Amanda Brown', avatar_url: null },
-        { id: '10', full_name: 'James Taylor', avatar_url: null },
-        { id: '11', full_name: 'Lisa Anderson', avatar_url: null },
-        { id: '12', full_name: 'Mark Robinson', avatar_url: null },
-      ];
-      setFriends(mockFriends);
+      // Fetch real friends from Supabase
+      const { data, error } = await supabase
+        .from('friends')
+        .select(`
+          friend:profiles!friends_friend_id_fkey(id, full_name, avatar_url)
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
+
+      if (error) {
+        console.error('Error fetching friends:', error);
+        setFriends([]);
+        return;
+      }
+
+      const friendsList: Friend[] = (data || [])
+        .map((item: any) => item.friend)
+        .filter(Boolean);
+
+      setFriends(friendsList);
     } catch (error) {
       console.error('Error fetching friends:', error);
+      setFriends([]);
     } finally {
       setLoading(false);
     }
@@ -134,34 +140,104 @@ export default function NewConversationScreen({ navigation }: any) {
   };
 
   const createConversation = async () => {
-    if (!conversationType) return;
-    
+    if (!conversationType || !user) return;
+
     setCreating(true);
     try {
-      // TODO: Create in Supabase
-      // const { data, error } = await supabase.from('conversations').insert({
-      //   type: conversationType,
-      //   name: groupName || null,
-      //   created_by: user?.id,
-      // }).select().single();
-      
-      // Mock conversation for now
-      const mockConversation = {
-        id: Date.now().toString(),
-        type: conversationType,
-        name: groupName || null,
-        members: selectedFriends,
-        last_message: null,
-        last_message_at: null,
-        unread_count: 0,
-      };
-      
-      // Navigate to the new chat
-      navigation.replace('Chat', { 
-        conversationId: mockConversation.id, 
-        conversation: mockConversation,
+      // For DMs, check if conversation already exists
+      if (conversationType === 'dm' && selectedFriends.length === 1) {
+        const friendId = selectedFriends[0].id;
+
+        // Check for existing DM between these two users
+        const { data: existingConvos } = await supabase
+          .from('conversation_members')
+          .select('conversation_id')
+          .eq('user_id', user.id);
+
+        if (existingConvos && existingConvos.length > 0) {
+          for (const ec of existingConvos) {
+            // Check if friend is also in this conversation
+            const { data: friendInConvo } = await supabase
+              .from('conversation_members')
+              .select('conversation_id')
+              .eq('conversation_id', ec.conversation_id)
+              .eq('user_id', friendId);
+
+            if (friendInConvo && friendInConvo.length > 0) {
+              // Check if it's a DM (only 2 members)
+              const { data: convoData } = await supabase
+                .from('conversations')
+                .select('id, type, name')
+                .eq('id', ec.conversation_id)
+                .eq('type', 'dm')
+                .single();
+
+              if (convoData) {
+                // Existing DM found, navigate to it
+                navigation.replace('Chat', {
+                  conversationId: convoData.id,
+                  conversation: {
+                    id: convoData.id,
+                    type: 'dm',
+                    name: null,
+                    members: selectedFriends,
+                    last_message: null,
+                    last_message_at: null,
+                    unread_count: 0,
+                  },
+                });
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      // Create new conversation
+      const { data: newConvo, error: convoError } = await supabase
+        .from('conversations')
+        .insert({
+          type: conversationType,
+          name: groupName || null,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (convoError) throw convoError;
+
+      // Add current user as member
+      await supabase.from('conversation_members').insert({
+        conversation_id: newConvo.id,
+        user_id: user.id,
       });
-      
+
+      // Add selected friends as members
+      const memberInserts = selectedFriends.map(friend => ({
+        conversation_id: newConvo.id,
+        user_id: friend.id,
+      }));
+
+      const { error: membersError } = await supabase
+        .from('conversation_members')
+        .insert(memberInserts);
+
+      if (membersError) throw membersError;
+
+      // Navigate to the new chat
+      navigation.replace('Chat', {
+        conversationId: newConvo.id,
+        conversation: {
+          id: newConvo.id,
+          type: conversationType,
+          name: groupName || null,
+          members: selectedFriends,
+          last_message: null,
+          last_message_at: null,
+          unread_count: 0,
+        },
+      });
+
     } catch (error) {
       console.error('Error creating conversation:', error);
       Alert.alert('Error', 'Failed to create conversation. Please try again.');

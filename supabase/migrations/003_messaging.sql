@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS conversations (
   type TEXT NOT NULL CHECK (type IN ('dm', 'besties', 'squad')),
   name TEXT, -- NULL for DMs, custom name for groups
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  last_message TEXT,
+  last_message_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -90,6 +92,11 @@ CREATE POLICY "Conversation creators can add members"
       SELECT id FROM conversations WHERE created_by = auth.uid()
     )
   );
+
+CREATE POLICY "Users can update their own membership"
+  ON conversation_members FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 
 -- Messages: users can see messages in their conversations
 CREATE POLICY "Users can view messages in their conversations"

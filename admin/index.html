@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REALones Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'baby-blue': '#E8F4F8',
+            'deep-blue': '#1A365D',
+            'accent': '#4A9BB8',
+            'warm-white': '#FAFAFA',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .stat-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4A9BB8;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-baby-blue min-h-screen">
+  <!-- Login Screen -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-light text-deep-blue">
+          REAL<span class="italic text-accent">ones</span>
+        </h1>
+        <p class="text-gray-500 mt-2">Admin Panel</p>
+      </div>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
+          <input
+            type="email"
+            id="email"
+            required
+            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent outline-none"
+            placeholder="admin@example.com"
+          >
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Password</label>
+          <input
+            type="password"
+            id="password"
+            required
+            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent outline-none"
+            placeholder="••••••••"
+          >
+        </div>
+        <button
+          type="submit"
+          class="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-opacity-90 transition"
+        >
+          Sign In
+        </button>
+        <p id="loginError" class="text-red-500 text-sm text-center hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="dashboardScreen" class="hidden">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-light text-deep-blue">
+          REAL<span class="italic text-accent">ones</span>
+          <span class="text-gray-400 text-sm ml-2">Admin</span>
+        </h1>
+        <div class="flex items-center gap-4">
+          <span id="adminEmail" class="text-sm text-gray-500"></span>
+          <button
+            onclick="signOut()"
+            class="text-sm text-gray-500 hover:text-red-500 transition"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+      <!-- Stats Overview -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card bg-white rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-500">Total Users</p>
+              <p id="totalUsers" class="text-3xl font-bold text-deep-blue">-</p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-xs text-green-500 mt-2">
+            <span id="newUsersToday">+0</span> today
+          </p>
+        </div>
+
+        <div class="stat-card bg-white rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-500">Total Posts</p>
+              <p id="totalPosts" class="text-3xl font-bold text-deep-blue">-</p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-xs text-green-500 mt-2">
+            <span id="newPostsToday">+0</span> today
+          </p>
+        </div>
+
+        <div class="stat-card bg-white rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-500">Total Friends</p>
+              <p id="totalFriends" class="text-3xl font-bold text-deep-blue">-</p>
+            </div>
+            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 mt-2">
+            Avg <span id="avgFriendsPerUser">0</span> per user
+          </p>
+        </div>
+
+        <div class="stat-card bg-white rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-500">Active Today</p>
+              <p id="activeToday" class="text-3xl font-bold text-deep-blue">-</p>
+            </div>
+            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 mt-2">
+            <span id="activePercent">0</span>% of users
+          </p>
+        </div>
+      </div>
+
+      <!-- Secondary Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat-card bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="text-sm font-medium text-gray-500 mb-4">Friend Tiers</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-sm">Ride or Dies (4 max)</span>
+              <span id="rideOrDiesCount" class="font-semibold text-pink-500">-</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm">Squad (12 max)</span>
+              <span id="squadCount" class="font-semibold text-green-500">-</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm">Real Ones</span>
+              <span id="realOnesCount" class="font-semibold text-accent">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="text-sm font-medium text-gray-500 mb-4">Conversations</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-sm">DMs</span>
+              <span id="dmCount" class="font-semibold">-</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm">Besties Groups</span>
+              <span id="bestiesCount" class="font-semibold">-</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm">Squad Groups</span>
+              <span id="squadGroupCount" class="font-semibold">-</span>
+            </div>
+            <div class="flex justify-between items-center border-t pt-3 mt-3">
+              <span class="text-sm font-medium">Total Messages</span>
+              <span id="totalMessages" class="font-bold text-accent">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="text-sm font-medium text-gray-500 mb-4">Engagement</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-sm">Total Reactions</span>
+              <span id="totalReactions" class="font-semibold">-</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm">Total Comments</span>
+              <span id="totalComments" class="font-semibold">-</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm">Avg Posts/User</span>
+              <span id="avgPostsPerUser" class="font-semibold">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Users Table -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+        <div class="px-6 py-4 border-b flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-deep-blue">Recent Users</h3>
+          <button onclick="loadStats()" class="text-sm text-accent hover:underline">Refresh</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Friends</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posts</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+              </tr>
+            </thead>
+            <tbody id="usersTable" class="divide-y divide-gray-100">
+              <tr>
+                <td colspan="5" class="px-6 py-8 text-center text-gray-400">
+                  <div class="loading-spinner mx-auto"></div>
+                  <p class="mt-2">Loading users...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Waitlist Stats -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b">
+          <h3 class="text-lg font-semibold text-deep-blue">Waitlist</h3>
+        </div>
+        <div class="p-6">
+          <div class="flex items-center gap-8">
+            <div>
+              <p class="text-sm text-gray-500">Total Signups</p>
+              <p id="waitlistCount" class="text-3xl font-bold text-accent">-</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">This Week</p>
+              <p id="waitlistThisWeek" class="text-3xl font-bold text-green-500">-</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Supabase config
+    const SUPABASE_URL = 'https://pufeoqopglqfgwtaixas.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1ZmVvcW9wZ2xxZmd3dGFpeGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NTgyNTMsImV4cCI6MjA4NDIzNDI1M30.HC1m_A6GTDDR-eZPwNPbsBGwVRxxRjKRoWowOY5fr2A';
+
+    // Admin emails that are allowed to access
+    const ADMIN_EMAILS = ['jesse@entreartists.com'];
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // DOM elements
+    const loginScreen = document.getElementById('loginScreen');
+    const dashboardScreen = document.getElementById('dashboardScreen');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    const adminEmail = document.getElementById('adminEmail');
+
+    // Check if already logged in
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && ADMIN_EMAILS.includes(session.user.email)) {
+        showDashboard(session.user.email);
+      }
+    }
+
+    // Login handler
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      loginError.classList.add('hidden');
+
+      // Check if admin email
+      if (!ADMIN_EMAILS.includes(email)) {
+        loginError.textContent = 'Access denied. Admin only.';
+        loginError.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) throw error;
+
+        showDashboard(email);
+      } catch (error) {
+        loginError.textContent = error.message || 'Login failed';
+        loginError.classList.remove('hidden');
+      }
+    });
+
+    // Show dashboard
+    function showDashboard(email) {
+      loginScreen.classList.add('hidden');
+      dashboardScreen.classList.remove('hidden');
+      adminEmail.textContent = email;
+      loadStats();
+    }
+
+    // Sign out
+    async function signOut() {
+      await supabase.auth.signOut();
+      dashboardScreen.classList.add('hidden');
+      loginScreen.classList.remove('hidden');
+    }
+
+    // Load all stats
+    async function loadStats() {
+      try {
+        // Get today's date range
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayISO = today.toISOString();
+
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        const weekAgoISO = weekAgo.toISOString();
+
+        // Fetch all stats in parallel
+        const [
+          usersResult,
+          postsResult,
+          friendsResult,
+          conversationsResult,
+          messagesResult,
+          reactionsResult,
+          commentsResult,
+          waitlistResult,
+          newUsersResult,
+          newPostsResult,
+          waitlistWeekResult,
+        ] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: false }),
+          supabase.from('posts').select('*', { count: 'exact', head: true }),
+          supabase.from('friends').select('*', { count: 'exact', head: true }),
+          supabase.from('conversations').select('type', { count: 'exact' }),
+          supabase.from('messages').select('*', { count: 'exact', head: true }),
+          supabase.from('reactions').select('*', { count: 'exact', head: true }),
+          supabase.from('comments').select('*', { count: 'exact', head: true }),
+          supabase.from('waitlist').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayISO),
+          supabase.from('posts').select('*', { count: 'exact', head: true }).gte('created_at', todayISO),
+          supabase.from('waitlist').select('*', { count: 'exact', head: true }).gte('created_at', weekAgoISO),
+        ]);
+
+        // Update main stats
+        const totalUsers = usersResult.count || 0;
+        const totalPosts = postsResult.count || 0;
+        const totalFriends = friendsResult.count || 0;
+
+        document.getElementById('totalUsers').textContent = totalUsers;
+        document.getElementById('totalPosts').textContent = totalPosts;
+        document.getElementById('totalFriends').textContent = totalFriends;
+        document.getElementById('newUsersToday').textContent = `+${newUsersResult.count || 0}`;
+        document.getElementById('newPostsToday').textContent = `+${newPostsResult.count || 0}`;
+        document.getElementById('avgFriendsPerUser').textContent = totalUsers > 0 ? (totalFriends / totalUsers).toFixed(1) : '0';
+
+        // Active today (users who posted or have recent activity)
+        const activeToday = newPostsResult.count || 0;
+        document.getElementById('activeToday').textContent = activeToday;
+        document.getElementById('activePercent').textContent = totalUsers > 0 ? ((activeToday / totalUsers) * 100).toFixed(0) : '0';
+
+        // Friend tiers - count by tier
+        const friendsByTier = await supabase.from('friends').select('tier');
+        const tierCounts = { rideordies: 0, squad: 0, realones: 0 };
+        (friendsByTier.data || []).forEach(f => {
+          if (f.tier && tierCounts[f.tier] !== undefined) {
+            tierCounts[f.tier]++;
+          } else {
+            tierCounts.realones++; // Default to realones if no tier
+          }
+        });
+        document.getElementById('rideOrDiesCount').textContent = tierCounts.rideordies;
+        document.getElementById('squadCount').textContent = tierCounts.squad;
+        document.getElementById('realOnesCount').textContent = tierCounts.realones;
+
+        // Conversation types
+        const convTypes = { dm: 0, besties: 0, squad: 0 };
+        (conversationsResult.data || []).forEach(c => {
+          if (convTypes[c.type] !== undefined) {
+            convTypes[c.type]++;
+          }
+        });
+        document.getElementById('dmCount').textContent = convTypes.dm;
+        document.getElementById('bestiesCount').textContent = convTypes.besties;
+        document.getElementById('squadGroupCount').textContent = convTypes.squad;
+        document.getElementById('totalMessages').textContent = messagesResult.count || 0;
+
+        // Engagement
+        document.getElementById('totalReactions').textContent = reactionsResult.count || 0;
+        document.getElementById('totalComments').textContent = commentsResult.count || 0;
+        document.getElementById('avgPostsPerUser').textContent = totalUsers > 0 ? (totalPosts / totalUsers).toFixed(1) : '0';
+
+        // Waitlist
+        document.getElementById('waitlistCount').textContent = waitlistResult.count || 0;
+        document.getElementById('waitlistThisWeek').textContent = `+${waitlistWeekResult.count || 0}`;
+
+        // Load recent users table
+        loadUsersTable(usersResult.data || []);
+
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    // Load users table
+    async function loadUsersTable(users) {
+      const tableBody = document.getElementById('usersTable');
+
+      if (users.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-gray-400">
+              No users found
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      // Get friend counts and post counts for each user
+      const userStats = await Promise.all(
+        users.slice(0, 20).map(async (user) => {
+          const [friendsCount, postsCount] = await Promise.all([
+            supabase.from('friends').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+            supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+          ]);
+          return {
+            ...user,
+            friendsCount: friendsCount.count || 0,
+            postsCount: postsCount.count || 0,
+          };
+        })
+      );
+
+      // Sort by created_at descending
+      userStats.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      tableBody.innerHTML = userStats.map(user => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4">
+            <div class="flex items-center">
+              <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-semibold">
+                ${user.full_name ? user.full_name.charAt(0).toUpperCase() : '?'}
+              </div>
+              <div class="ml-3">
+                <p class="font-medium text-deep-blue">${user.full_name || 'No name'}</p>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 text-sm text-gray-500">${user.email || 'N/A'}</td>
+          <td class="px-6 py-4 text-sm">${user.friendsCount}</td>
+          <td class="px-6 py-4 text-sm">${user.postsCount}</td>
+          <td class="px-6 py-4 text-sm text-gray-500">${new Date(user.created_at).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Initialize
+    checkAuth();
+  </script>
+</body>
+</html>

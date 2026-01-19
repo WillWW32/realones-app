@@ -108,22 +108,49 @@ export function usePosts(): UsePostsReturn {
     mediaUrls?: string[],
     postType: Post['post_type'] = 'text'
   ) => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      throw new Error('You must be logged in to create a post');
+    }
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('posts')
         .insert({
           user_id: user.id,
           content,
-          media_urls: mediaUrls,
+          media_urls: mediaUrls || [],
           post_type: postType,
           visibility: 'circle',
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error creating post:', error);
+        if (error.code === '42P01') {
+          throw new Error('Posts table not found. Please set up the database.');
+        } else if (error.code === '23503') {
+          throw new Error('Invalid user profile. Please complete your profile setup.');
+        } else {
+          throw new Error(error.message || 'Failed to create post');
+        }
+      }
+
+      // Optimistically add the new post to the list
+      if (data) {
+        const newPost = {
+          ...data,
+          author: null, // Will be refreshed
+          reactions_count: [{ count: 0 }],
+          comments_count: [{ count: 0 }],
+          user_reaction: null,
+        };
+        setPosts(prev => [newPost, ...prev]);
+      }
+
+      // Refresh to get full post data with author
       await refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating post:', err);
       throw err;
     }

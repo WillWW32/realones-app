@@ -109,9 +109,9 @@ export default function FacebookImportScreen({ navigation }: any) {
         return;
       }
 
-      // Navigate to invite screen with parsed friends
+      // Navigate to SwipeCull to sort friends (gamified!)
       setLoading(false);
-      navigation.navigate('InviteFriends', { importedFriends: friends });
+      navigation.navigate('SwipeCull', { friends });
 
     } catch (error) {
       console.error('File pick error:', error);
@@ -139,7 +139,7 @@ export default function FacebookImportScreen({ navigation }: any) {
       { name: 'Ryan O\'Connor', timestamp: 1633046400 },
     ];
 
-    navigation.navigate('InviteFriends', { importedFriends: sampleFriends });
+    navigation.navigate('SwipeCull', { friends: sampleFriends });
   };
 
   const openTutorial = () => {

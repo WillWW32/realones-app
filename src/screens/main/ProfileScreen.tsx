@@ -14,7 +14,7 @@ import { colors, spacing, borderRadius, typography, shadows } from '../../lib/th
 import { useAuth } from '../../hooks/useAuth';
 import { useFriends } from '../../hooks/useFriends';
 import { useStreaks } from '../../hooks/useStreaks';
-import { CONSTANTS } from '../../types';
+import { CONSTANTS, PRICING_INFO } from '../../types';
 
 export default function ProfileScreen({ navigation }: any) {
   const { profile, signOut } = useAuth();
@@ -58,7 +58,10 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
           <Text style={styles.userName}>{profile?.full_name || 'Set up your profile'}</Text>
           {profile?.bio && <Text style={styles.userBio}>{profile.bio}</Text>}
-          <TouchableOpacity style={styles.editProfileBtn}>
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            onPress={() => navigation.navigate('EditProfile')}
+          >
             <Text style={styles.editProfileText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -70,21 +73,51 @@ export default function ProfileScreen({ navigation }: any) {
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{activeCount}</Text>
               <Text style={styles.statLabel}>Active</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{CONSTANTS.FREE_FRIEND_LIMIT}</Text>
-              <Text style={styles.statLabel}>Free Limit</Text>
+              <Text style={styles.statLimit}>/ {CONSTANTS.FREE_ACTIVE_LIMIT}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{archivedCount}</Text>
-              <Text style={styles.statLabel}>Archived</Text>
+              <Text style={styles.statLabel}>Remember Me</Text>
+              <Text style={styles.statLimit}>/ {CONSTANTS.FREE_ARCHIVED_LIMIT}</Text>
+            </View>
+          </View>
+
+          {/* Progress bars */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressRow}>
+              <Text style={styles.progressLabel}>Active</Text>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${Math.min((activeCount / CONSTANTS.FREE_ACTIVE_LIMIT) * 100, 100)}%`,
+                      backgroundColor: activeCount > CONSTANTS.FREE_ACTIVE_LIMIT ? colors.warning : colors.accent,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+            <View style={styles.progressRow}>
+              <Text style={styles.progressLabel}>Archived</Text>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${Math.min((archivedCount / CONSTANTS.FREE_ARCHIVED_LIMIT) * 100, 100)}%`,
+                      backgroundColor: archivedCount > CONSTANTS.FREE_ARCHIVED_LIMIT ? colors.warning : colors.success,
+                    },
+                  ]}
+                />
+              </View>
             </View>
           </View>
 
           {isOverLimit && (
             <View style={styles.upgradeNotice}>
+              <Ionicons name="warning" size={20} color={colors.warning} />
               <Text style={styles.upgradeText}>
                 You're {extraFriendsNeeded} friends over the free limit
               </Text>
@@ -97,25 +130,89 @@ export default function ProfileScreen({ navigation }: any) {
           )}
         </View>
 
-        {/* Streak Card */}
+        {/* Pricing Card */}
+        <View style={styles.pricingCard}>
+          <View style={styles.pricingHeader}>
+            <Text style={styles.sectionTitle}>Pricing</Text>
+            <View style={styles.freeTag}>
+              <Text style={styles.freeTagText}>You're on Free</Text>
+            </View>
+          </View>
+
+          <View style={styles.pricingTiers}>
+            {/* Free Tier */}
+            <View style={[styles.pricingTier, styles.pricingTierActive]}>
+              <Text style={styles.tierPrice}>{PRICING_INFO.free.price}</Text>
+              <Text style={styles.tierName}>{PRICING_INFO.free.name}</Text>
+              {PRICING_INFO.free.features.map((feature, idx) => (
+                <View key={idx} style={styles.featureRow}>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                  <Text style={styles.featureText}>{feature}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Premium Tier */}
+            <View style={styles.pricingTier}>
+              <Text style={styles.tierPrice}>{PRICING_INFO.premium.pricePerTen}</Text>
+              <Text style={styles.tierName}>{PRICING_INFO.premium.name}</Text>
+              {PRICING_INFO.premium.features.map((feature, idx) => (
+                <View key={idx} style={styles.featureRow}>
+                  <Ionicons name="add-circle-outline" size={16} color={colors.accent} />
+                  <Text style={styles.featureText}>{feature}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Enhanced Streak Card */}
         <View style={styles.streakCard}>
-          <View style={styles.streakHeader}>
-            <Ionicons name="flame" size={28} color={colors.streakFire} />
-            <View style={styles.streakInfo}>
+          <Text style={styles.streakSectionTitle}>Your Streaks 🔥</Text>
+
+          {/* Main Streak Display */}
+          <View style={styles.mainStreakRow}>
+            <View style={styles.streakItem}>
+              <View style={[styles.streakIconCircle, { backgroundColor: colors.heart + '20' }]}>
+                <Ionicons name="heart" size={24} color={colors.heart} />
+              </View>
               <Text style={styles.streakNumber}>{streak?.current_streak || 0}</Text>
-              <Text style={styles.streakLabel}>Day Streak</Text>
+              <Text style={styles.streakLabel}>Cull Streak</Text>
+              <Text style={styles.streakSubLabel}>Reviewing friends</Text>
+            </View>
+
+            <View style={styles.streakDivider} />
+
+            <View style={styles.streakItem}>
+              <View style={[styles.streakIconCircle, { backgroundColor: colors.accent + '20' }]}>
+                <Ionicons name="create" size={24} color={colors.accent} />
+              </View>
+              <Text style={styles.streakNumber}>{0}</Text>
+              <Text style={styles.streakLabel}>Post Streak</Text>
+              <Text style={styles.streakSubLabel}>Sharing moments</Text>
             </View>
           </View>
-          <View style={styles.streakStats}>
-            <View style={styles.miniStat}>
-              <Text style={styles.miniStatNumber}>{streak?.longest_streak || 0}</Text>
-              <Text style={styles.miniStatLabel}>Best</Text>
+
+          {/* Streak Stats */}
+          <View style={styles.streakStatsRow}>
+            <View style={styles.streakStat}>
+              <Ionicons name="trophy" size={16} color={colors.accent} />
+              <Text style={styles.streakStatText}>Best: {streak?.longest_streak || 0} days</Text>
             </View>
-            <View style={styles.miniStat}>
-              <Text style={styles.miniStatNumber}>{badges.length}</Text>
-              <Text style={styles.miniStatLabel}>Badges</Text>
+            <View style={styles.streakStat}>
+              <Ionicons name="ribbon" size={16} color={colors.accent} />
+              <Text style={styles.streakStatText}>{badges.length} badges earned</Text>
             </View>
           </View>
+
+          {/* CTA to start cull */}
+          <TouchableOpacity
+            style={styles.startCullBtn}
+            onPress={() => navigation.navigate('SwipeCull')}
+          >
+            <Ionicons name="shuffle" size={18} color={colors.warmWhite} />
+            <Text style={styles.startCullText}>Review Friends Now</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Badges */}
@@ -159,6 +256,24 @@ export default function ProfileScreen({ navigation }: any) {
           >
             <Ionicons name="time-outline" size={22} color={colors.deepBlue} />
             <Text style={styles.actionText}>Memory Lane</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.softGray} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => navigation.navigate('Invite')}
+          >
+            <Ionicons name="paper-plane-outline" size={22} color={colors.deepBlue} />
+            <Text style={styles.actionText}>Invite Friends via SMS</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.softGray} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionRow, { borderBottomWidth: 0 }]}
+            onPress={() => navigation.navigate('ContactImport')}
+          >
+            <Ionicons name="phone-portrait-outline" size={22} color={colors.deepBlue} />
+            <Text style={styles.actionText}>Import from Contacts</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.softGray} />
           </TouchableOpacity>
         </View>
@@ -274,9 +389,41 @@ const styles = StyleSheet.create({
     color: colors.softGray,
     marginTop: 2,
   },
+  statLimit: {
+    fontSize: typography.xs,
+    color: colors.mediumGray,
+    marginTop: 2,
+  },
   statDivider: {
     width: 1,
     backgroundColor: colors.lightGray,
+  },
+  progressSection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  progressLabel: {
+    width: 60,
+    fontSize: typography.xs,
+    color: colors.softGray,
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: colors.lightGray,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
   },
   upgradeNotice: {
     marginTop: spacing.md,
@@ -284,11 +431,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.lightGray,
     alignItems: 'center',
+    flexDirection: 'column',
+    gap: spacing.sm,
   },
   upgradeText: {
     fontSize: typography.sm,
     color: colors.softGray,
-    marginBottom: spacing.sm,
   },
   upgradeBtn: {
     backgroundColor: colors.accent,
@@ -308,39 +456,81 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     ...shadows.sm,
   },
-  streakHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+  streakSectionTitle: {
+    fontSize: typography.lg,
+    fontWeight: typography.semibold,
+    color: colors.deepBlue,
+    marginBottom: spacing.md,
   },
-  streakInfo: {
+  mainStreakRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: spacing.md,
+  },
+  streakItem: {
+    alignItems: 'center',
     flex: 1,
   },
+  streakIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  streakDivider: {
+    width: 1,
+    backgroundColor: colors.lightGray,
+    marginHorizontal: spacing.md,
+  },
   streakNumber: {
-    fontSize: typography['3xl'],
+    fontSize: typography['2xl'],
     fontWeight: typography.bold,
     color: colors.deepBlue,
   },
   streakLabel: {
     fontSize: typography.sm,
-    color: colors.softGray,
-  },
-  streakStats: {
-    flexDirection: 'row',
-    marginTop: spacing.md,
-    gap: spacing.xl,
-  },
-  miniStat: {
-    alignItems: 'center',
-  },
-  miniStatNumber: {
-    fontSize: typography.lg,
-    fontWeight: typography.semibold,
+    fontWeight: typography.medium,
     color: colors.deepBlue,
+    marginTop: 2,
   },
-  miniStatLabel: {
+  streakSubLabel: {
     fontSize: typography.xs,
     color: colors.softGray,
+  },
+  streakStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+  },
+  streakStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  streakStatText: {
+    fontSize: typography.sm,
+    color: colors.softGray,
+  },
+  startCullBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.heart,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.full,
+    marginTop: spacing.md,
+    gap: spacing.xs,
+  },
+  startCullText: {
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.warmWhite,
   },
   badgesCard: {
     backgroundColor: colors.warmWhite,
@@ -401,5 +591,63 @@ const styles = StyleSheet.create({
     fontSize: typography.base,
     color: colors.error,
     fontWeight: typography.medium,
+  },
+  // Pricing card styles
+  pricingCard: {
+    backgroundColor: colors.warmWhite,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.sm,
+  },
+  pricingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  freeTag: {
+    backgroundColor: colors.success + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  freeTagText: {
+    fontSize: typography.xs,
+    fontWeight: typography.semibold,
+    color: colors.success,
+  },
+  pricingTiers: {
+    gap: spacing.md,
+  },
+  pricingTier: {
+    padding: spacing.md,
+    backgroundColor: colors.lightGray,
+    borderRadius: borderRadius.md,
+  },
+  pricingTierActive: {
+    backgroundColor: colors.accent + '10',
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
+  tierPrice: {
+    fontSize: typography.lg,
+    fontWeight: typography.bold,
+    color: colors.deepBlue,
+  },
+  tierName: {
+    fontSize: typography.sm,
+    color: colors.softGray,
+    marginBottom: spacing.sm,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: 4,
+  },
+  featureText: {
+    fontSize: typography.sm,
+    color: colors.deepBlue,
   },
 });
