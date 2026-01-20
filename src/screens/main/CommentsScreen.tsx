@@ -18,7 +18,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { Comment, Post } from '../../types';
 
-interface CommentWithAuthor extends Comment {
+interface CommentWithAuthor extends Omit<Comment, 'author'> {
   author?: {
     id: string;
     full_name: string;
